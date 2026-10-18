@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 import { StatusEnum } from '../enums/status.enum.js';
+import { TimestampedEntity } from '../../common/entities/timestamped.entity.js';
 
 @Entity()
-export class TodoEntity {
+export class TodoEntity extends TimestampedEntity {
     @PrimaryGeneratedColumn()
         id: number;
 
@@ -11,9 +12,6 @@ export class TodoEntity {
 
     @Column()
         description: string;
-
-    @CreateDateColumn()
-        createdAt: Date;
 
     @Column({
         type: 'enum',

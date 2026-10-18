@@ -6,6 +6,13 @@ import { TestModule } from './test/test.module.js';
 import { TodoModule } from './todo/todo.module.js';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TodoEntity } from './todo/entities/todo.entity.js';
+import { existsSync } from 'node:fs';
+import { loadEnvFile } from 'node:process';
+
+// Load local settings before TypeORM reads process.env. Existing shell variables take precedence.
+if (existsSync('.env')) {
+  loadEnvFile();
+}
 
 @Module({
   imports: [

@@ -31,6 +31,16 @@
 $ npm install
 ```
 
+## Database configuration
+
+Create a local `.env` file from `.env.example` and set `DB_PASSWORD` to the password of your MySQL `root` account. The `.env` file is ignored by Git.
+
+```env
+DB_PASSWORD=your_mysql_password
+```
+
+Make sure MySQL is running and the `todo_db` database exists before starting the application.
+
 ## Compile and run the project
 
 ```bash

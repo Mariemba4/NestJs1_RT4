@@ -81,6 +81,17 @@ export class TodoController {
   getStats() {
     return this.todoService.getStats();
   }
-    
+
+  @Get()
+  getAll() {
+    return this.todoService.getAll();
+  }
+
+  @Get(':id')
+getById(
+  @Param('id', ParseIntPipe) id: number,
+) {
+  return this.todoService.getById(id);
+}
     
 }

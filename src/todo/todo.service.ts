@@ -80,4 +80,22 @@ export class TodoService {
 
     return results;
   }
+
+  async getAll() {
+  return this.todoRepository.find();
+}
+
+async getById(id: number) {
+  const todo = await this.todoRepository.findOne({
+    where: { id },
+  });
+
+  if (!todo) {
+    throw new NotFoundException(
+      `Todo ${id} introuvable`,
+    );
+  }
+
+  return todo;
+}
 }

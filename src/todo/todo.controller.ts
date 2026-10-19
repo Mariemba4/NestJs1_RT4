@@ -1,39 +1,78 @@
-
 import {
   Body,
   Controller,
-  Param,
-  Patch,
   Post,
+  Version,
+   ParseIntPipe,
+  Patch,
+  Param, 
+  Delete
 } from '@nestjs/common';
 
-import { CreateTodoDto } from './dto/create-todo.dto.js';
-import { UpdateTodoDto } from './dto/update-todo.dto.js';
-import { TodoEntity } from './entities/todo.entity.js';
 import { TodoService } from './todo.service.js';
+import { UpdateTodoDto } from './dto/update-todo.dto.js';
+import { CreateTodoDto } from './dto/create-todo.dto.js';
+import { TodoEntity } from './entities/todo.entity.js';
 
 @Controller('todo')
 export class TodoController {
-  constructor(private readonly todoService: TodoService) { }
+  constructor(
+    private readonly todoService: TodoService,
+  ) {}
 
-  // Version 1 : create a Todo
+  // VERSION 1 : sans base de données
   @Post()
-  create(@Body() createTodoDto: CreateTodoDto): Promise<TodoEntity> {
-    return this.todoService.create(createTodoDto);
+  @Version('1')
+  addTodoV1(
+    @Body() createTodoDto: CreateTodoDto,
+  ): CreateTodoDto {
+    return this.todoService.addTodoV1(createTodoDto);
   }
 
-  // Version 2 : add a Todo
-  @Post('add')
-  addTodo(@Body() createTodoDto: CreateTodoDto): Promise<TodoEntity> {
-    return this.todoService.addTodo(createTodoDto);
+  // VERSION 2 : avec TypeORM
+  @Post()
+  @Version('2')
+  addTodoV2(
+    @Body() createTodoDto: CreateTodoDto,
+  ): Promise<TodoEntity> {
+    return this.todoService.addTodoV2(createTodoDto);
   }
 
-  // Exercice 10 : update a Todo by its ID
+  //mettre à jour un todo dans la base de données via son id.
   @Patch(':id')
   updateTodo(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateTodoDto: UpdateTodoDto,
   ): Promise<TodoEntity> {
-    return this.todoService.updateTodo(parseInt(id, 10), updateTodoDto);
+
+    return this.todoService.updateTodo(
+      id,
+      updateTodoDto,
+    );
   }
+
+  //supprimer un todo dans la base de données via son id.
+  @Delete(':id')
+  deleteTodo(
+  @Param('id', ParseIntPipe) id: number,
+) {
+  return this.todoService.deleteTodo(id);
+  }
+
+  //supprimer un todo dans la base de données via son id d’une façon soft.
+  @Delete('soft/:id')
+  softdeleteTodo(
+  @Param('id', ParseIntPipe) id: number,
+  ) {
+  return this.todoService.softdeleteTodo(id);
+    }
+
+ //restaurer le todo.
+  @Patch('restore/:id')
+  restoreTodo(
+  @Param('id', ParseIntPipe) id: number,
+  ) {
+  return this.todoService.restoreTodo(id);
+    }
+    
 }

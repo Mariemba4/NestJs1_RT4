@@ -159,6 +159,101 @@ La route `PATCH` est adaptée à une mise à jour partielle : les champs non env
 
 Les deux versions de création sont conservées pour répondre à la demande du TP. La route de mise à jour utilise `UpdateTodoDto` et recherche d’abord l’entité existante.
 
+## 11. Avancement de Yasmine — exercice 13 : statistiques par statut
+
+La méthode `getStats()` a été ajoutée dans `src/todo/todo.service.ts`. Elle utilise le repository TypeORM pour compter les todos par statut en une seule requête SQL :
+
+```ts
+async getStats() {
+  const results = await this.todoRepository
+    .createQueryBuilder('todo')
+    .select('todo.status', 'status')
+    .addSelect('COUNT(todo.id)', 'count')
+    .groupBy('todo.status')
+    .getRawMany();
+
+  return results;
+}
+```
+
+- `createQueryBuilder('todo')` prépare la requête avec l'alias `todo`.
+- `select()` sélectionne le statut et `COUNT(todo.id)` compte les tâches de chaque groupe.
+- `groupBy()` regroupe les tâches ayant le même statut.
+- `getRawMany()` exécute la requête et renvoie les résultats bruts, sans construire des entités.
+
+Dans `src/todo/todo.controller.ts`, `@Get('stats')` délègue à cette méthode.
+
+Exemple de réponse :
+
+```json
+[
+  { "status": "TODO", "count": "3" },
+  { "status": "DONE", "count": "1" }
+]
+```
+
+Dans cette implémentation, un statut sans tâche est absent du résultat, et une base sans tâche renvoie `[]`. MySQL peut renvoyer les compteurs sous forme de chaînes. Pour afficher systématiquement les trois statuts, il resterait à compléter les groupes absents avec zéro.
+
+À expliquer à l'oral : « J'utilise GROUP BY et COUNT pour obtenir les nombres de todos par statut avec une seule requête SQL. »
+
+## 12. Avancement de Yasmine — exercice 14 : récupérer tous les todos
+
+La méthode `getAll()` dans le service utilise :
+
+```ts
+async getAll() {
+  return this.todoRepository.find();
+}
+```
+
+Le contrôleur expose cette opération avec `@Get()` sous le préfixe `todo` et appelle `this.todoService.getAll()`.
+La réponse est un tableau des tâches, ou `[]` si aucune tâche n'est présente.
+
+À expliquer à l'oral : « Le contrôleur reçoit la requête GET, puis le service utilise find() pour récupérer les todos dans MySQL. »
+
+## 13. Avancement de Yasmine — exercice 15 : récupérer un todo par identifiant
+
+Le contrôleur déclare `@Get(':id')` et récupère l'identifiant avec `@Param('id', ParseIntPipe)`. Ce pipe convertit le paramètre en entier et rejette un identifiant incorrect avec une erreur HTTP 400.
+
+La méthode `getById(id)` du service effectue la recherche :
+
+```ts
+async getById(id: number) {
+  const todo = await this.todoRepository.findOne({
+    where: { id },
+  });
+
+  if (!todo) {
+    throw new NotFoundException(`Todo ${id} introuvable`);
+  }
+
+  return todo;
+}
+```
+
+Si la tâche existe, elle est renvoyée. Sinon, `NotFoundException` produit une réponse HTTP 404.
+La route fixe `stats` est déclarée avant `:id` pour éviter que le mot `stats` soit interprété comme un identifiant.
+
+À expliquer à l'oral : « Je valide l'identifiant, je recherche la tâche avec findOne(), puis je renvoie la tâche ou une erreur 404 si elle n'existe pas. »
+
+## Points de vérification pour les exercices 13 à 15
+
+Les trois recherches utilisent le comportement par défaut de TypeORM : les tâches supprimées logiquement via `deletedAt` sont exclues des statistiques, de la liste et de la recherche par identifiant.
+
+Dans le code actuel, les trois routes GET n'ont pas de décorateur `@Version()`, alors que `main.ts` active le versionnement URI sans version par défaut. Il reste à leur attribuer une version explicite ou à les déclarer neutres pour les exposer correctement.
+
+Par exemple, en ajoutant `@Version('2')` à chacune, les URL de test seraient :
+
+| Requête | Résultat attendu |
+|---|---|
+| `GET /v2/todo/stats` | Compteurs par statut présent |
+| `GET /v2/todo` | Tableau des todos |
+| `GET /v2/todo/1` | Todo d'identifiant 1, ou 404 s'il n'existe pas |
+| `GET /v2/todo/abc` | Erreur 400 |
+
+Pour tester les statistiques, créer des tâches avec `POST /v2/todo`, puis vérifier que le compteur `TODO` augmente. Pour la recherche par identifiant, utiliser l'identifiant renvoyé lors de la création et tester aussi un identifiant absent.
+Les résultats des tests HTTP sur cette version ne sont pas consignés ici ; les étapes ci-dessus constituent les vérifications à effectuer.
+
 ## Pour démarrer et vérifier le projet
 
 1. Installer les dépendances avec `npm install`.

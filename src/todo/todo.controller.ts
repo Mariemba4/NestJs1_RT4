@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Post,
   Version,
    ParseIntPipe,
@@ -74,5 +75,12 @@ export class TodoController {
   ) {
   return this.todoService.restoreTodo(id);
     }
+    
+    // nombre de todos par statut.
+  @Get('stats')
+  getStats() {
+    return this.todoService.getStats();
+  }
+    
     
 }

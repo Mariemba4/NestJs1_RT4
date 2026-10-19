@@ -68,4 +68,16 @@ export class TodoService {
   async restoreTodo(id: number) {
     return await this.todoRepository.restore(id);
   }
+
+    //compter les todos par statut en une seule requête.
+  async getStats() {
+    const results = await this.todoRepository
+      .createQueryBuilder('todo')
+      .select('todo.status', 'status')
+      .addSelect('COUNT(todo.id)', 'count')
+      .groupBy('todo.status')
+      .getRawMany();
+
+    return results;
+  }
 }

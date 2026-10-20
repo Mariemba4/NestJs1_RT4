@@ -4,6 +4,7 @@ import { Repository,DeleteResult } from 'typeorm';
 import { UpdateTodoDto } from './dto/update-todo.dto.js';
 import { TodoEntity } from './entities/todo.entity.js';
 import { CreateTodoDto } from './dto/create-todo.dto.js';
+import { PaginationDto } from '../common/dto/pagination.dto.js';
 
 @Injectable()
 export class TodoService {
@@ -42,7 +43,7 @@ export class TodoService {
     }
     return await this.todoRepository.save(todo);
   }
-
+ 
   //supprimer un todo dans la base de données via son id.
   async deleteTodo(
     id: number,
@@ -70,6 +71,7 @@ export class TodoService {
   }
 
     //compter les todos par statut en une seule requête.
+
   async getStats() {
     const results = await this.todoRepository
       .createQueryBuilder('todo')
@@ -77,12 +79,29 @@ export class TodoService {
       .addSelect('COUNT(todo.id)', 'count')
       .groupBy('todo.status')
       .getRawMany();
-
+    //équivalent sql : SELECT todo.status AS status, COUNT(todo.id) AS count 
+    //FROM todo_entity todo
+    //WHERE todo.deletedAt IS NULL
+    //GROUP BY todo.status;
     return results;
   }
 
-  async getAll() {
-  return this.todoRepository.find();
+  async getAll(pagination: PaginationDto) {
+  const { page, limit } = pagination;
+
+  const [data, total] = await this.todoRepository.findAndCount({
+    skip: (page - 1) * limit,
+    take: limit,
+    order: { id: 'ASC' },
+  });
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 async getById(id: number) {

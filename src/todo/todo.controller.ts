@@ -7,13 +7,15 @@ import {
    ParseIntPipe,
   Patch,
   Param, 
-  Delete
+  Delete,
+  Query,
 } from '@nestjs/common';
 
 import { TodoService } from './todo.service.js';
 import { UpdateTodoDto } from './dto/update-todo.dto.js';
 import { CreateTodoDto } from './dto/create-todo.dto.js';
 import { TodoEntity } from './entities/todo.entity.js';
+import { PaginationDto } from '../common/dto/pagination.dto.js';
 
 @Controller('todo')
 export class TodoController {
@@ -83,8 +85,8 @@ export class TodoController {
   }
 
   @Get()
-  getAll() {
-    return this.todoService.getAll();
+  getAll(@Query() pagination: PaginationDto) {
+    return this.todoService.getAll(pagination);
   }
 
   @Get(':id')

@@ -62,7 +62,9 @@ export class TodoService {
 
   //supprimer un todo dans la base de données via son id d’une façon soft.
   async softdeleteTodo(id: number) {
-    return await this.todoRepository.softDelete(id);
+    const response = await this.todoRepository.softDelete(id);
+    if (!response.affected) throw new NotFoundException("La section n'existe pas");
+        return response;
   }
 
    //restaurer le todo.

@@ -16,7 +16,7 @@ import { UpdateTodoDto } from './dto/update-todo.dto.js';
 import { CreateTodoDto } from './dto/create-todo.dto.js';
 import { TodoEntity } from './entities/todo.entity.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
-import { GetTodosDto, SearchTodoDto } from './dto/get-todo.dto.js';
+import { GetTodosDto } from './dto/get-todo.dto.js';
 
 @Controller('todo')
 export class TodoController {

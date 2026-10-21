@@ -5,7 +5,7 @@ import { UpdateTodoDto } from './dto/update-todo.dto.js';
 import { TodoEntity } from './entities/todo.entity.js';
 import { CreateTodoDto } from './dto/create-todo.dto.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
-import { SearchTodoDto } from './dto/search-todo.dto.js';
+import { GetTodosDto } from './dto/get-todo.dto.js';
 
 @Injectable()
 export class TodoService {
@@ -88,13 +88,26 @@ export class TodoService {
     //GROUP BY todo.status;
     return results;
   }
+  
+async getById(id: number) {
+  const todo = await this.todoRepository.findOne({
+    where: { id },
+  });
+
+  if (!todo) {
+    throw new NotFoundException(
+      `Todo ${id} introuvable`,
+    );
+  }
+
+  return todo;
+}
 
 
-async searchTodos(searchTodoDto: SearchTodoDto): Promise<TodoEntity[]> {
-  const { search, status } = searchTodoDto;
+async getAll(getTodosDto: GetTodosDto) {
+  const { search, status, page, limit } = getTodosDto;
 
-  const queryBuilder =
-    this.todoRepository.createQueryBuilder('todo');
+  const queryBuilder = this.todoRepository.createQueryBuilder('todo');
 
   if (search) {
     queryBuilder.andWhere(
@@ -109,27 +122,20 @@ async searchTodos(searchTodoDto: SearchTodoDto): Promise<TodoEntity[]> {
   }
 
   if (status) {
-    queryBuilder.andWhere('todo.status = :status', {status: status});   
+    queryBuilder.andWhere('todo.status = :status', { status });
   }
   //equivalent SQL :
   // SELECT * FROM todo_entity todo
   // WHERE (todo.name LIKE '%search%' OR todo.description LIKE '%search%')
   // AND todo.status = 'status'
- 
-  return await queryBuilder.getMany();  
-   // Si search et status ne sont pas fournis, la requête sera : 
+  // Si search et status ne sont pas fournis, la requête sera : 
   // SELECT * FROM todo_entity todo
-}
 
-
-  async getAll(pagination: PaginationDto) {
-  const { page, limit } = pagination;
-
-  const [data, total] = await this.todoRepository.findAndCount({
-    skip: (page - 1) * limit,
-    take: limit,
-    order: { id: 'ASC' },
-  });
+  const [data, total] = await queryBuilder
+    .orderBy('todo.id', 'ASC')
+    .skip((page - 1) * limit)
+    .take(limit)
+    .getManyAndCount();
 
   return {
     data,
@@ -140,17 +146,4 @@ async searchTodos(searchTodoDto: SearchTodoDto): Promise<TodoEntity[]> {
   };
 }
 
-async getById(id: number) {
-  const todo = await this.todoRepository.findOne({
-    where: { id },
-  });
-
-  if (!todo) {
-    throw new NotFoundException(
-      `Todo ${id} introuvable`,
-    );
-  }
-
-  return todo;
-}
 }

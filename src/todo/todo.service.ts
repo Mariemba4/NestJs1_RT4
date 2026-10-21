@@ -1,10 +1,11 @@
 import { Injectable,NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository,DeleteResult } from 'typeorm';
+import { Repository,DeleteResult,Brackets } from 'typeorm';
 import { UpdateTodoDto } from './dto/update-todo.dto.js';
 import { TodoEntity } from './entities/todo.entity.js';
 import { CreateTodoDto } from './dto/create-todo.dto.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
+import { SearchTodoDto } from './dto/search-todo.dto.js';
 
 @Injectable()
 export class TodoService {
@@ -87,6 +88,39 @@ export class TodoService {
     //GROUP BY todo.status;
     return results;
   }
+
+
+async searchTodos(searchTodoDto: SearchTodoDto): Promise<TodoEntity[]> {
+  const { search, status } = searchTodoDto;
+
+  const queryBuilder =
+    this.todoRepository.createQueryBuilder('todo');
+
+  if (search) {
+    queryBuilder.andWhere(
+      new Brackets(qb => {                         // Sans brackets : A OR B AND C => A OR (B AND C)  
+        qb.where('todo.name LIKE :search', {      // Avec brackets : (A OR B) AND C  
+          search: `%${search}%`,
+        }).orWhere('todo.description LIKE :search', {
+          search: `%${search}%`,
+        });     // WHERE (todo.name LIKE '%search%' OR todo.description LIKE '%search%')
+      }),
+    );
+  }
+
+  if (status) {
+    queryBuilder.andWhere('todo.status = :status', {status: status});   
+  }
+  //equivalent SQL :
+  // SELECT * FROM todo_entity todo
+  // WHERE (todo.name LIKE '%search%' OR todo.description LIKE '%search%')
+  // AND todo.status = 'status'
+ 
+  return await queryBuilder.getMany();  
+   // Si search et status ne sont pas fournis, la requête sera : 
+  // SELECT * FROM todo_entity todo
+}
+
 
   async getAll(pagination: PaginationDto) {
   const { page, limit } = pagination;

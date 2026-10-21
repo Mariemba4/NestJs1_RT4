@@ -20,4 +20,7 @@ export const VALIDATION_MESSAGES = {
     limitMin: 'La limite doit être supérieure ou égale à 1.',
     limitMax: 'La limite ne peut pas dépasser 100.',
   },
+  search: {
+  mustBeString: 'Le critère de recherche doit être une chaîne de caractères.',
+  },
 } as const;

@@ -16,6 +16,7 @@ import { UpdateTodoDto } from './dto/update-todo.dto.js';
 import { CreateTodoDto } from './dto/create-todo.dto.js';
 import { TodoEntity } from './entities/todo.entity.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
+import { SearchTodoDto } from './dto/search-todo.dto.js';
 
 @Controller('todo')
 export class TodoController {
@@ -82,6 +83,13 @@ export class TodoController {
   @Get('stats')
   getStats() {
     return this.todoService.getStats();
+  }
+
+  @Get('search')
+  searchTodos(@Query() searchTodoDto: SearchTodoDto) {
+
+    return this.todoService.searchTodos(searchTodoDto);
+    
   }
 
   @Get()

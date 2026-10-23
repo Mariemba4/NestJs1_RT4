@@ -70,7 +70,15 @@ export class TodoService {
 
    //restaurer le todo.
   async restoreTodo(id: number) {
-    return await this.todoRepository.restore(id);
+    const result = await this.todoRepository.restore(id);
+
+    if (result.affected === 0) 
+          {
+      throw new NotFoundException(`Todo ${id} introuvable`);
+          }
+
+  return result;
+}
   }
 
     //compter les todos par statut en une seule requête.
@@ -107,7 +115,7 @@ async getById(id: number) {
 async getAll(getTodosDto: GetTodosDto) {
   const { search, status, page, limit } = getTodosDto;
 
-  const queryBuilder = this.todoRepository.createQueryBuilder('todo');
+  const queryBuilder = this.todoRepository.createQueryBuilder('todo');     
 
   if (search) {
     queryBuilder.andWhere(
@@ -122,7 +130,7 @@ async getAll(getTodosDto: GetTodosDto) {
   }
 
   if (status) {
-    queryBuilder.andWhere('todo.status = :status', { status });
+    queryBuilder.andWhere('todo.status = :status', { status : status });
   }
   //equivalent SQL :
   // SELECT * FROM todo_entity todo

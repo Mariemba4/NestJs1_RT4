@@ -140,8 +140,8 @@ async getAll(getTodosDto: GetTodosDto) {
   return {
     data,
     total,
-    page,
-    limit,              // Kammoun Lisez le code ajouter des commentaires afin de le rendre comprehensible 
+    page, 
+    limit,             
     totalPages: Math.ceil(total / limit),
   };
 }

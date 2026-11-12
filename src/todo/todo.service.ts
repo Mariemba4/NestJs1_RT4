@@ -22,15 +22,30 @@ export class TodoService {
   // VERSION 2 : enregistrement dans MySQL avec TypeORM
   async addTodoV2(
     createTodoDto: CreateTodoDto,
+    userId: string | number,
   ): Promise<TodoEntity> {
-    return await this.todoRepository.save(createTodoDto);
+    const todo = this.todoRepository.create({
+      ...createTodoDto,
+      userId: String(userId),
+    });
+    return await this.todoRepository.save(todo);
   }
 
   //mettre à jour un todo dans la base de données via son id.
   async updateTodo(
     id: number,
     updateTodoDto: UpdateTodoDto,
+    userId: string | number,
   ): Promise<TodoEntity> {
+    const existing = await this.todoRepository.findOne({
+      where: { id, userId: String(userId) },
+    });
+
+    if (!existing) {
+      throw new NotFoundException(
+        `Todo avec l'id ${id} introuvable ou vous n'en êtes pas le propriétaire`,
+      );
+    }
 
     const todo = await this.todoRepository.preload({
       id,
@@ -48,37 +63,58 @@ export class TodoService {
   //supprimer un todo dans la base de données via son id.
   async deleteTodo(
     id: number,
+    userId: string | number,
   ): Promise<DeleteResult> {
-
-    const result =
-      await this.todoRepository.delete(id);
+    const result = await this.todoRepository.delete({
+      id,
+      userId: String(userId),
+    });
 
     if (result.affected === 0) {
       throw new NotFoundException(
-        `Todo avec l'id ${id} introuvable`,
+        `Todo avec l'id ${id} introuvable ou vous n'en êtes pas le propriétaire`,
       );
     }
     return result;
   }
 
   //supprimer un todo dans la base de données via son id d’une façon soft.
-  async softdeleteTodo(id: number) {
-    const response = await this.todoRepository.softDelete(id);
+  async softdeleteTodo(id: number, userId: string | number) {
+    const existing = await this.todoRepository.findOne({
+      where: { id, userId: String(userId) },
+    });
+    if (!existing) {
+      throw new NotFoundException("Todo introuvable ou vous n'en êtes pas le propriétaire");
+    }
+
+    const response = await this.todoRepository.softDelete({
+      id,
+      userId: String(userId),
+    });
     if (!response.affected) throw new NotFoundException("La section n'existe pas");
-        return response;
+    return response;
   }
 
    //restaurer le todo.
-  async restoreTodo(id: number) {
-    const result = await this.todoRepository.restore(id);
+  async restoreTodo(id: number, userId: string | number) {
+    const existing = await this.todoRepository.findOne({
+      where: { id, userId: String(userId) },
+      withDeleted: true,
+    });
+    if (!existing) {
+      throw new NotFoundException("Todo introuvable ou vous n'en êtes pas le propriétaire");
+    }
 
-    if (result.affected === 0) 
-          {
+    const result = await this.todoRepository.restore({
+      id,
+      userId: String(userId),
+    });
+
+    if (result.affected === 0) {
       throw new NotFoundException(`Todo ${id} introuvable`);
-          }
+    }
 
-  return result;
-}
+    return result;
   }
 
     //compter les todos par statut en une seule requête.

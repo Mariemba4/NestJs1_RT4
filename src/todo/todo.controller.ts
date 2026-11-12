@@ -9,6 +9,7 @@ import {
   Param, 
   Delete,
   Query,
+  Req,
 } from '@nestjs/common';
 
 import { TodoService } from './todo.service.js';
@@ -17,6 +18,7 @@ import { CreateTodoDto } from './dto/create-todo.dto.js';
 import { TodoEntity } from './entities/todo.entity.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { GetTodosDto } from './dto/get-todo.dto.js';
+import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface.js';
 
 @Controller('todo')
 export class TodoController {
@@ -38,8 +40,9 @@ export class TodoController {
   @Version('2')
   addTodoV2(
     @Body() createTodoDto: CreateTodoDto,
+    @Req() req: AuthenticatedRequest,
   ): Promise<TodoEntity> {
-    return this.todoService.addTodoV2(createTodoDto);
+    return this.todoService.addTodoV2(createTodoDto, req.userId!);
   }
 
   //mettre à jour un todo dans la base de données via son id.
@@ -47,37 +50,42 @@ export class TodoController {
   updateTodo(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateTodoDto: UpdateTodoDto,
+    @Req() req: AuthenticatedRequest,
   ): Promise<TodoEntity> {
 
     return this.todoService.updateTodo(
       id,
       updateTodoDto,
+      req.userId!,
     );
   }
 
   //supprimer un todo dans la base de données via son id.
   @Delete(':id')
   deleteTodo(
-  @Param('id', ParseIntPipe) id: number,
-) {
-  return this.todoService.deleteTodo(id);
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.todoService.deleteTodo(id, req.userId!);
   }
 
   //supprimer un todo dans la base de données via son id d’une façon soft.
   @Delete('soft/:id')
   softdeleteTodo(
-  @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
   ) {
-  return this.todoService.softdeleteTodo(id);
-    }
+    return this.todoService.softdeleteTodo(id, req.userId!);
+  }
 
  //restaurer le todo.
   @Patch('restore/:id')
   restoreTodo(
-  @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
   ) {
-  return this.todoService.restoreTodo(id);
-    }
+    return this.todoService.restoreTodo(id, req.userId!);
+  }
     
     // nombre de todos par statut.
   @Get('stats')

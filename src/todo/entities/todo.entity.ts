@@ -19,4 +19,7 @@ export class TodoEntity extends TimestampedEntity {
         default: StatusEnum.TODO,
     })
     status: StatusEnum;
+
+    @Column({ nullable: true })
+    userId: string;
 }

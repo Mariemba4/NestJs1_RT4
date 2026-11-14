@@ -163,18 +163,7 @@ Les deux versions de création sont conservées pour répondre à la demande du 
 
 La méthode `getStats()` a été ajoutée dans `src/todo/todo.service.ts`. Elle utilise le repository TypeORM pour compter les todos par statut en une seule requête SQL :
 
-```ts
-async getStats() {
-  const results = await this.todoRepository
-    .createQueryBuilder('todo')
-    .select('todo.status', 'status')
-    .addSelect('COUNT(todo.id)', 'count')
-    .groupBy('todo.status')
-    .getRawMany();
 
-  return results;
-}
-```
 
 - `createQueryBuilder('todo')` prépare la requête avec l'alias `todo`.
 - `select()` sélectionne le statut et `COUNT(todo.id)` compte les tâches de chaque groupe.
@@ -194,9 +183,8 @@ Exemple de réponse :
 
 Dans cette implémentation, un statut sans tâche est absent du résultat, et une base sans tâche renvoie `[]`. MySQL peut renvoyer les compteurs sous forme de chaînes. Pour afficher systématiquement les trois statuts, il resterait à compléter les groupes absents avec zéro.
 
-À expliquer à l'oral : « J'utilise GROUP BY et COUNT pour obtenir les nombres de todos par statut avec une seule requête SQL. »
 
-## 12. Avancement de Yasmine — exercice 14 : récupérer tous les todos
+## 12. exercice 14 : récupérer tous les todos
 
 La méthode `getAll()` dans le service utilise :
 
@@ -211,45 +199,17 @@ La réponse est un tableau des tâches, ou `[]` si aucune tâche n'est présente
 
 À expliquer à l'oral : « Le contrôleur reçoit la requête GET, puis le service utilise find() pour récupérer les todos dans MySQL. »
 
-## 13. Avancement de Yasmine — exercice 15 : récupérer un todo par identifiant
+## 13. — exercice 15 : récupérer un todo par identifiant
 
 Le contrôleur déclare `@Get(':id')` et récupère l'identifiant avec `@Param('id', ParseIntPipe)`. Ce pipe convertit le paramètre en entier et rejette un identifiant incorrect avec une erreur HTTP 400.
 
 La méthode `getById(id)` du service effectue la recherche :
 
-```ts
-async getById(id: number) {
-  const todo = await this.todoRepository.findOne({
-    where: { id },
-  });
-
-  if (!todo) {
-    throw new NotFoundException(`Todo ${id} introuvable`);
-  }
-
-  return todo;
-}
-```
 
 Si la tâche existe, elle est renvoyée. Sinon, `NotFoundException` produit une réponse HTTP 404.
 La route fixe `stats` est déclarée avant `:id` pour éviter que le mot `stats` soit interprété comme un identifiant.
 
-À expliquer à l'oral : « Je valide l'identifiant, je recherche la tâche avec findOne(), puis je renvoie la tâche ou une erreur 404 si elle n'existe pas. »
 
-## Points de vérification pour les exercices 13 à 15
-
-Les trois recherches utilisent le comportement par défaut de TypeORM : les tâches supprimées logiquement via `deletedAt` sont exclues des statistiques, de la liste et de la recherche par identifiant.
-
-Dans le code actuel, les trois routes GET n'ont pas de décorateur `@Version()`, alors que `main.ts` active le versionnement URI sans version par défaut. Il reste à leur attribuer une version explicite ou à les déclarer neutres pour les exposer correctement.
-
-Par exemple, en ajoutant `@Version('2')` à chacune, les URL de test seraient :
-
-| Requête | Résultat attendu |
-|---|---|
-| `GET /v2/todo/stats` | Compteurs par statut présent |
-| `GET /v2/todo` | Tableau des todos |
-| `GET /v2/todo/1` | Todo d'identifiant 1, ou 404 s'il n'existe pas |
-| `GET /v2/todo/abc` | Erreur 400 |
 
 Pour tester les statistiques, créer des tâches avec `POST /v2/todo`, puis vérifier que le compteur `TODO` augmente. Pour la recherche par identifiant, utiliser l'identifiant renvoyé lors de la création et tester aussi un identifiant absent.
 Les résultats des tests HTTP sur cette version ne sont pas consignés ici ; les étapes ci-dessus constituent les vérifications à effectuer.
@@ -266,3 +226,28 @@ Les résultats des tests HTTP sur cette version ne sont pas consignés ici ; les
 Les imports relatifs utilisent l’extension `.js` dans ce projet parce que `package.json` configure `"type": "module"` et que TypeScript utilise `"module": "nodenext"`. Le build a réussi après le rétablissement de ces extensions.
 
 **État des vérifications :** la compilation a réussi. La connexion à MySQL a auparavant renvoyé `ER_ACCESS_DENIED_ERROR` parce que l’application utilisait un mot de passe vide. Il reste à configurer le mot de passe et à tester les routes avec la base de données. Les tests Vitest n’ont pas été exécutés dans le cadre de cette passation.
+
+## TP2 — Seed de la base de données (pages 5 à 9)
+
+Le script `src/commands/cv.seeder.ts` remplit la base avec des données fictives pour les entités User, Skill et CV. Il utilise `@ngneat/falso` pour générer des noms, prénoms, métiers et âges. Une graine fixe (`nestjs-tp2-cv-seed-v1`) rend ces valeurs aléatoires reproductibles.
+
+Le seed démarre Nest sans serveur HTTP avec `NestFactory.createApplicationContext(AppModule)`, puis récupère `UserService`, `SkillService` et `CvService` via `app.get()`. Il réutilise ainsi les services et repositories déjà configurés par les modules, au lieu d’écrire directement du SQL.
+
+Le script crée ou réutilise cinq utilisateurs, huit compétences et jusqu’à douze CV. L’ordre est important : les utilisateurs et compétences sont créés avant les CV, car un CV référence un utilisateur par `userId` et des compétences par `skillIds`. Les CIN et e-mails de seed utilisent des valeurs déterministes et uniques. Avant chaque insertion, le script vérifie si cet enregistrement existe déjà ; il peut donc être relancé sans recréer ces mêmes données.
+
+Les CV générés utilisent des chemins fictifs sous `/seed/cvs/` ; aucun fichier PDF n’est créé. Le mot de passe enregistré pour les comptes de seed est un texte factice réservé aux données locales et ne doit pas servir à se connecter à un vrai compte.
+
+Enfin, le script appelle `app.close()` dans un bloc `finally` pour fermer la connexion même si une insertion échoue. Le projet étant en ESM avec TypeScript `NodeNext`, la commande `seed:cvs` compile d’abord le projet puis exécute le fichier JavaScript généré. Il faut utiliser la version Node 24 déjà nécessaire au CLI Nest :
+
+```bash
+nvm use 24
+npm run seed:cvs
+```
+
+À expliquer à l’oral : « Le seed est une petite application Nest autonome. Le conteneur d’injection nous donne les services existants ; on crée d’abord les entités référencées, puis les CV, et on ferme le contexte à la fin. »
+
+La compilation a été vérifiée avec Node 24.22.0. L’exécution contre MySQL doit être faite avec la base `todo_db` en marche et le `DB_PASSWORD` local correctement configuré.
+
+Pour ESM, les propriétés de relations des entités utilisent le type `Relation<T>` de TypeORM. Cela évite que les métadonnées TypeScript évaluent trop tôt les entités mutuellement liées pendant leur chargement. Le middleware d'authentification importe également `jsonwebtoken` comme export par défaut (`jwt.verify`), afin d'être compatible avec l'import ESM du paquet CommonJS.
+
+**Vérification d'exécution :** avec Node 24.22.0, `npm run seed:cvs` a créé 5 utilisateurs, 8 compétences et 12 CV. Une seconde exécution a reconnu les données existantes et n'a créé aucun nouveau CV.

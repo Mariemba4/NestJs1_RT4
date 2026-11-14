@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Response, NextFunction } from 'express';
-import { verify } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface.js';
 
 interface JwtPayloadWithUser {
@@ -35,7 +35,7 @@ export class AuthMiddleware implements NestMiddleware {
     }
 
     try {
-      const decoded = verify(authHeader, secret);
+      const decoded = jwt.verify(authHeader, secret);
 
       if (
         typeof decoded !== 'object' ||

@@ -1,4 +1,5 @@
 import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
+import type { Relation } from 'typeorm';
 import { TimestampedEntity } from '../../common/entities/timestamped.entity.js';
 import { CvEntity } from '../../cv/entities/cv.entity.js';
 
@@ -11,5 +12,5 @@ export class SkillEntity extends TimestampedEntity {
   designation: string;
 
   @ManyToMany(() => CvEntity, (cv) => cv.skills)
-  cvs: CvEntity[];
+  cvs: Relation<CvEntity[]>;
 }

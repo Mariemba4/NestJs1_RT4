@@ -7,6 +7,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import type { Relation } from 'typeorm';
 import { TimestampedEntity } from '../../common/entities/timestamped.entity.js';
 import { SkillEntity } from '../../skill/entities/skill.entity.js';
 import { UserEntity } from '../../user/entities/user.entity.js';
@@ -36,12 +37,12 @@ export class CvEntity extends TimestampedEntity {
 
   @ManyToOne(() => UserEntity, (user) => user.cvs, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
-  user: UserEntity;
+  user: Relation<UserEntity>;
 
   @Column()
   userId: number;
 
   @ManyToMany(() => SkillEntity, (skill) => skill.cvs)
   @JoinTable({ name: 'cv_skills' })
-  skills: SkillEntity[];
+  skills: Relation<SkillEntity[]>;
 }

@@ -14,6 +14,7 @@ import { SkillModule } from './skill/skill.module.js';
 import { SkillEntity } from './skill/entities/skill.entity.js';
 import { existsSync } from 'node:fs';
 import { loadEnvFile } from 'node:process';
+import { AuthModule } from './auth/auth.module.js';
 
 // Load local settings before TypeORM reads process.env. Existing shell variables take precedence.
 if (existsSync('.env')) {
@@ -38,6 +39,7 @@ if (existsSync('.env')) {
     UserModule,
     CvModule,
     SkillModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

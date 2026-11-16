@@ -36,11 +36,6 @@ export class CreateCvDto {
   @IsNotEmpty()
   path: string;
 
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  userId: number;
-
   @IsOptional()
   @IsArray()
   @ArrayUnique()

@@ -6,9 +6,12 @@ import {
   randNumber,
   seed as seedFalso,
 } from '@ngneat/falso';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import type { Repository } from 'typeorm';
 import { AppModule } from '../app.module.js';
 import { CvService } from '../cv/cv.service.js';
 import { CreateCvDto } from '../cv/dto/create-cv.dto.js';
+import { CvEntity } from '../cv/entities/cv.entity.js';
 import { SkillService } from '../skill/skill.service.js';
 import { UserService } from '../user/user.service.js';
 
@@ -63,7 +66,7 @@ async function bootstrap(): Promise<void> {
       );
     }
 
-    const existingCvs = await cvService.findAll();
+    const existingCvs = await app.get<Repository<CvEntity>>(getRepositoryToken(CvEntity)).find();
     let createdCvCount = 0;
 
     for (let index = 0; index < CV_COUNT; index += 1) {
@@ -81,11 +84,10 @@ async function bootstrap(): Promise<void> {
         cin,
         job: randJobTitle(),
         path: `/seed/cvs/${cin}.pdf`,
-        userId: users[index % users.length].id,
         skillIds,
       };
 
-      await cvService.create(cv);
+      await cvService.create(cv, users[index % users.length]);
       createdCvCount += 1;
     }
 

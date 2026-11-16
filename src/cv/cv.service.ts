@@ -1,17 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { SkillEntity } from '../skill/entities/skill.entity.js';
 import { UserEntity } from '../user/entities/user.entity.js';
+import { UserRoleEnum } from '../user/enums/role.enum.js';
 import { CreateCvDto } from './dto/create-cv.dto.js';
 import { UpdateCvDto } from './dto/update-cv.dto.js';
 import { CvEntity } from './entities/cv.entity.js';
+
+// Seules les infos nécessaires aux décisions d'accès : l'utilisateur connecté.
+type CurrentUser = Pick<UserEntity, 'id' | 'role'>;
 
 @Injectable()
 export class CvService {
   constructor(
     @InjectRepository(CvEntity) private readonly cvRepository: Repository<CvEntity>,
-    @InjectRepository(UserEntity) private readonly userRepository: Repository<UserEntity>,
     @InjectRepository(SkillEntity) private readonly skillRepository: Repository<SkillEntity>,
   ) {}
 
@@ -24,28 +27,11 @@ export class CvService {
     return skills;
   }
 
-  async create(dto: CreateCvDto): Promise<CvEntity> {
-    const user = await this.userRepository.findOneBy({ id: dto.userId });
-    if (!user) throw new NotFoundException(`Utilisateur ${dto.userId} introuvable`);
-
-    const cv = this.cvRepository.create({
-      name: dto.name,
-      firstname: dto.firstname,
-      age: dto.age,
-      cin: dto.cin,
-      job: dto.job,
-      path: dto.path,
-      userId: user.id,
-      skills: await this.getSkills(dto.skillIds),
-    });
-    return this.cvRepository.save(cv);
+  private isAdmin(user: CurrentUser): boolean {
+    return user.role === UserRoleEnum.ADMIN;
   }
 
-  findAll(): Promise<CvEntity[]> {
-    return this.cvRepository.find({ relations: { user: true, skills: true } });
-  }
-
-  async findOne(id: number): Promise<CvEntity> {
+  private async findById(id: number): Promise<CvEntity> {
     const cv = await this.cvRepository.findOne({
       where: { id },
       relations: { user: true, skills: true },
@@ -54,15 +40,51 @@ export class CvService {
     return cv;
   }
 
-  async update(id: number, dto: UpdateCvDto): Promise<CvEntity> {
-    const cv = await this.findOne(id);
+  private assertOwner(cv: CvEntity, user: CurrentUser): void {
+    if (cv.userId !== user.id) {
+      throw new ForbiddenException("Ce CV ne vous appartient pas");
+    }
+  }
+
+  // Ex. 12 : le propriétaire est le user connecté, jamais une valeur du body.
+  async create(dto: CreateCvDto, user: CurrentUser): Promise<CvEntity> {
+    const { skillIds, ...properties } = dto;
+    const cv = this.cvRepository.create({
+      ...properties,
+      userId: user.id,
+      skills: await this.getSkills(skillIds),
+    });
+    return this.cvRepository.save(cv);
+  }
+
+  // Ex. 14 : admin -> tous les CV ; user -> uniquement les siens.
+  findAll(user: CurrentUser): Promise<CvEntity[]> {
+    return this.cvRepository.find({
+      where: this.isAdmin(user) ? {} : { userId: user.id },
+      relations: { user: true, skills: true },
+    });
+  }
+
+  // Lecture : propriétaire ou admin.
+  async findOne(id: number, user: CurrentUser): Promise<CvEntity> {
+    const cv = await this.findById(id);
+    if (!this.isAdmin(user)) this.assertOwner(cv, user);
+    return cv;
+  }
+
+  // Ex. 12 : modification et suppression réservées au propriétaire.
+  async update(id: number, dto: UpdateCvDto, user: CurrentUser): Promise<CvEntity> {
+    const cv = await this.findById(id);
+    this.assertOwner(cv, user);
     const { skillIds, ...properties } = dto;
     Object.assign(cv, properties);
     if (skillIds !== undefined) cv.skills = await this.getSkills(skillIds);
     return this.cvRepository.save(cv);
   }
 
-  async remove(id: number): Promise<void> {
-    await this.cvRepository.remove(await this.findOne(id));
+  async remove(id: number, user: CurrentUser): Promise<void> {
+    const cv = await this.findById(id);
+    this.assertOwner(cv, user);
+    await this.cvRepository.remove(cv);
   }
 }

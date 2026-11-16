@@ -1,3 +1,4 @@
+import { Exclude } from 'class-transformer';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import type { Relation } from 'typeorm';
 import { TimestampedEntity } from '../../common/entities/timestamped.entity.js';
@@ -15,6 +16,8 @@ export class UserEntity extends TimestampedEntity {
   @Column({ unique: true })
   email: string;
 
+  // Jamais renvoyé dans une réponse HTTP (ClassSerializerInterceptor, main.ts).
+  @Exclude()
   @Column()
   password: string;
 
